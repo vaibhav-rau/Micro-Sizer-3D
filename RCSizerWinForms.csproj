@@ -3,11 +3,14 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>headshot.ico</ApplicationIcon>
-    <AssemblyName>Micro-Sizer 3D</AssemblyName>
+    <AssemblyName>Micro-Sizer-3D</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
