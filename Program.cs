@@ -12,8 +12,15 @@ namespace RCSizerWinForms
         [STAThread]
         static void Main()
         {
-            ApplicationConfiguration.Initialize();
-            Application.Run(new MainForm());
+            try
+            {
+                ApplicationConfiguration.Initialize();
+                Application.Run(new MainForm());
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("CRITICAL APPLICATION ERROR ON STARTUP: \n\n" + ex.ToString(), "Micro-FAST Diagnostic Hook");
+            }
         }
     }
 
@@ -100,12 +107,11 @@ namespace RCSizerWinForms
 
         public MainForm()
         {
-            this.Text = "Micro-Sizer 3D";
+            this.Text = "Micro-Sizer 3D Proportional Engine";
             this.WindowState = FormWindowState.Maximized;
             this.FormBorderStyle = FormBorderStyle.Sizable; 
             this.BackColor = Color.FromArgb(24, 24, 26);
 
-            // Force form window to inherit application level production icon asset bounds
             try { this.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
 
             this.KeyPreview = true;
@@ -173,10 +179,10 @@ namespace RCSizerWinForms
             txtOutput = new TextBox
             {
                 Multiline = true,
-                Size = new Size(380, 180),
+                Size = new Size(380, 260),
                 BackColor = Color.FromArgb(32, 32, 36),
                 ForeColor = Color.FromArgb(0, 255, 180),
-                Font = new Font("Consolas", 9.0f),
+                Font = new Font("Consolas", 8.5f),
                 ReadOnly = true,
                 ScrollBars = ScrollBars.Vertical,
                 BorderStyle = BorderStyle.None
@@ -493,6 +499,12 @@ namespace RCSizerWinForms
             var best = validConfigs.OrderBy(x => x.StallSpeed).First();
             string dihedralLabel = best.DihedralAngle < 0 ? $"Anhedral Angle     : {Math.Abs(best.DihedralAngle):F1}° (Stabilizing)" : $"Dihedral Angle     : {best.DihedralAngle:F1}°";
 
+            // Spatial alignment definitions
+            double calcTailZ = best.FuselageLength * 0.72;
+            double fuseW = best.Chord * 0.28;
+            double wingYVerticalOffset = activeAirframeType.Contains("High") ? -fuseW / 2 : (activeAirframeType.Contains("Low") ? fuseW / 2 : 0);
+            if (activeAirframeType == "Delta Flying Wing") wingYVerticalOffset = 0;
+
             txtOutput.Text = $"SUCCESS: Scale-Proportional Optimization Engine\r\n" +
                              $"Permutations Tested: {totalIterationsChecked:N0}\r\n\r\n" +
                              $"--- Core Wing Dimensions ---\r\n" +
@@ -507,9 +519,15 @@ namespace RCSizerWinForms
                              $"V-Stab Target Area : {best.VStabArea:F4} m²\r\n" +
                              $"V-Stab Total Height: {best.VStabHeight:F3} m\r\n" +
                              $"V-Stab Root Chord  : {best.VStabChord:F3} m\r\n\r\n" +
+                             $"--- Spatial Airframe Locations (From Nose 0,0,0) ---\r\n" +
+                             $"Wing Quarter-Chord Ref Point  : [X: 0.000m, Y: {wingYVerticalOffset:F3}m, Z: {best.WingZPos:F3}m]\r\n" +
+                             $"H-Stab Center Reference Point : [X: 0.000m, Y: 0.000m, Z: {calcTailZ:F3}m]\r\n" +
+                             $"V-Stab Base Reference Point   : [X: 0.000m, Y: {-fuseW / 2:F3}m, Z: {calcTailZ:F3}m]\r\n\r\n" +
                              $"--- Performance Matrices ---\r\n" +
                              $"Stall Velocity     : {best.StallSpeed:F1} m/s\r\n" +
                              $"Fuselage Length    : {best.FuselageLength:F2} m\r\n" +
+                             $"Est. Balsa Strut Framework Wt : {best.CalculatedBalsaMass * 1000:F0} g\r\n" +
+                             $"Total Calculated Gross Weight : {best.TotalWeight:F2} kg\r\n" +
                              $"Takeoff Ground Run : {best.TakeoffDist:F1} m";
 
             double sweepRad = best.SweepAngle * Math.PI / 180.0;
@@ -524,8 +542,14 @@ namespace RCSizerWinForms
                                   $"2. TAIL DIMENSIONAL DESIGN VALUES\r\n" +
                                   $"   Horizontal Area (Sh) = {best.HStabArea:F4} m² -> Span: {best.HStabSpan:F3} m | Chord: {best.HStabChord:F3} m\r\n" +
                                   $"   Vertical Area (Sv)   = {best.VStabArea:F4} m² -> Height: {best.VStabHeight:F3} m | Chord: {best.VStabChord:F3} m\r\n\r\n" +
-                                  $"3. AIRFRAME PERFORMANCE TARGETS\r\n" +
+                                  $"3. AIRFRAME SPATIAL LOCATION MATRIX (NOSE DATUM)\r\n" +
+                                  $"   Fuselage Reference Point 0,0,0 coordinates at extreme nose boundaries.\r\n" +
+                                  $"   Wing Center Leading edge Alignment Y-Axis = {wingYVerticalOffset:F3} m | Z-Axis = {best.WingZPos:F3} m\r\n" +
+                                  $"   Horizontal Stabilizer Offset Location Z = {calcTailZ:F3} m\r\n" +
+                                  $"   Vertical Stabilizer Base Alignment Y-Axis = {-fuseW / 2:F3} m | Z-Axis = {calcTailZ:F3} m\r\n\r\n" +
+                                  $"4. AIRFRAME PERFORMANCE TARGETS\r\n" +
                                   $"   Wing Area (S) = {span * best.Chord:F3} m²\r\n" +
+                                  $"   Estimated Material Mass (Balsa) = {best.CalculatedBalsaMass:F3} kg\r\n" +
                                   $"   V_stall = {best.StallSpeed:F2} m/s";
 
             chartLd.Series["DataSeries"].Points.Clear();
